@@ -20,7 +20,7 @@ class RegisterRequest extends FormRequest
             'email'     => 'required|email|unique:users,email',
             'password'  => 'required|string|min:8|confirmed', // password_confirmation bhi chahiye
             'phone'     => 'required|string|max:20',
-            'user_type' => 'required|in:worker,provider,participant',
+            'user_type' => 'nullable|in:worker,provider,participant',
         ];
     }
 

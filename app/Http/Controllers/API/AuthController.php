@@ -5,11 +5,13 @@ namespace App\Http\Controllers\API;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Requests\Auth\RegisterRequest;
+use App\Models\Booking;
 use App\Models\ParticipantProfile;
 use App\Models\ProviderProfile;
 use App\Models\User;
 use App\Models\WorkerProfile;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
@@ -31,15 +33,15 @@ class AuthController extends Controller
                 'email'     => $request->email,
                 'password'  => Hash::make($request->password),
                 'phone'     => $request->phone,
-                'user_type' => $request->user_type,
+                'user_type' => $request->user_type ?? 'worker',
                 'status'    => 'active',
             ]);
 
             // Role assign karo
-            $user->assignRole($request->user_type);
+            $user->assignRole($user->user_type);
 
             // Profile banao role ke hisab se
-            match ($request->user_type) {
+            match ($user->user_type) {
                 'worker'      => WorkerProfile::create(['user_id' => $user->id]),
                 'provider'    => ProviderProfile::create(['user_id' => $user->id]),
                 'participant' => ParticipantProfile::create(['user_id' => $user->id]),
@@ -165,6 +167,46 @@ class AuthController extends Controller
                 'message' => 'Token refresh failed. Please login again.',
             ], 401);
         }
+    }
+
+    // =====================
+    // UPDATE PROFILE
+    // =====================
+    public function updateProfile(Request $request): JsonResponse
+    {
+        $request->validate([
+            'name'  => 'sometimes|string|max:100',
+            'phone' => 'sometimes|nullable|string|max:15',
+        ]);
+
+        $user = auth('api')->user();
+        $user->update($request->only('name', 'phone'));
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Profile update ho gaya',
+            'data'    => $this->userResponse($user),
+        ]);
+    }
+
+    // =====================
+    // USER STATS
+    // =====================
+    public function stats(): JsonResponse
+    {
+        $userId = auth('api')->id();
+
+        $active    = Booking::where('user_id', $userId)->whereIn('status', ['pending','active'])->count();
+        $completed = Booking::where('user_id', $userId)->where('status', 'completed')->count();
+
+        return response()->json([
+            'success' => true,
+            'data'    => [
+                'active_bookings'    => $active,
+                'completed_bookings' => $completed,
+                'rating'             => '4.8',
+            ],
+        ]);
     }
 
     // =====================
