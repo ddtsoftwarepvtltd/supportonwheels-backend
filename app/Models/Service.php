@@ -1,17 +1,16 @@
 <?php
-
 namespace App\Models;
-
 use Illuminate\Database\Eloquent\Model;
 
 class Service extends Model
 {
-    protected $fillable = ['title','icon','tag','price','price_label','color','is_active'];
+    protected $fillable = [
+        'category_id','name','description','base_price','price_type',
+        'estimated_duration_min','icon','color','tag','is_active'
+    ];
+    protected $casts = ['is_active' => 'boolean', 'base_price' => 'float'];
 
-    protected $casts = ['is_active' => 'boolean', 'price' => 'float'];
-
-    public function scopeActive($query)
-    {
-        return $query->where('is_active', true);
-    }
+    public function category() { return $this->belongsTo(ServiceCategory::class, 'category_id'); }
+    public function reviews() { return $this->hasMany(Review::class); }
+    public function scopeActive($q) { return $q->where('is_active', true); }
 }

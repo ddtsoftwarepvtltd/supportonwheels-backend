@@ -10,86 +10,68 @@ class RolesAndPermissionsSeeder extends Seeder
 {
     public function run(): void
     {
-        // Cache reset karo pehle
         app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
 
         // ===== PERMISSIONS =====
-
         $permissions = [
 
-            // --- User Management ---
-            'view users',
-            'create users',
-            'edit users',
-            'delete users',
-            'block users',
+            // --- User / Auth ---
+            'view users', 'create users', 'edit users', 'delete users', 'block users',
 
-            // --- Worker Management ---
-            'view workers',
-            'create workers',
-            'edit workers',
-            'delete workers',
-            'approve workers',
-            'block workers',
+            // --- Worker ---
+            'view workers', 'create workers', 'edit workers', 'delete workers',
+            'approve workers', 'block workers',
 
-            // --- Provider Management ---
-            'view providers',
-            'create providers',
-            'edit providers',
-            'delete providers',
-            'approve providers',
+            // --- Provider ---
+            'view providers', 'create providers', 'edit providers',
+            'delete providers', 'approve providers',
 
-            // --- Participant Management ---
-            'view participants',
-            'create participants',
-            'edit participants',
-            'delete participants',
+            // --- Participant / Customer ---
+            'view participants', 'create participants', 'edit participants', 'delete participants',
 
-            // --- Shift Management ---
-            'view shifts',
-            'create shifts',
-            'edit shifts',
-            'delete shifts',
-            'assign shifts',
-            'approve shifts',
-            'cancel shifts',
-            'bulk upload shifts',
+            // --- Bookings (Home Services) ---
+            'bookings.view', 'bookings.create', 'bookings.manage',
 
-            // --- Timesheet ---
-            'view timesheets',
-            'submit timesheets',
-            'approve timesheets',
+            // --- Customers (Home Services) ---
+            'customers.view', 'customers.manage',
 
-            // --- Incident Management ---
-            'view incidents',
-            'create incidents',
-            'manage incidents',
+            // --- Providers (Home Services) ---
+            'providers.view', 'providers.approve', 'providers.manage',
 
-            // --- Referral & Points ---
-            'view referrals',
-            'manage referrals',
-            'view points',
-            'manage points',
+            // --- Services ---
+            'services.manage',
+
+            // --- Finance ---
+            'finance.view', 'finance.manage',
+
+            // --- Coupons ---
+            'coupons.manage',
+
+            // --- Shifts ---
+            'view shifts', 'create shifts', 'edit shifts', 'delete shifts',
+            'assign shifts', 'approve shifts', 'cancel shifts', 'bulk upload shifts',
+
+            // --- Timesheets ---
+            'view timesheets', 'submit timesheets', 'approve timesheets',
+
+            // --- Incidents ---
+            'view incidents', 'create incidents', 'manage incidents',
+
+            // --- Referrals & Points ---
+            'view referrals', 'manage referrals', 'view points', 'manage points',
 
             // --- Reports ---
-            'view reports',
-            'export reports',
+            'view reports', 'export reports',
 
             // --- Admin Panel ---
-            'access admin panel',
-            'manage roles',
-            'manage permissions',
-            'view dashboard',
-            'manage settings',
+            'access admin panel', 'manage roles', 'manage permissions',
+            'view dashboard', 'manage settings',
 
             // --- Notifications ---
-            'send notifications',
-            'view notifications',
+            'send notifications', 'view notifications',
 
             // --- Ratings ---
-            'view ratings',
-            'submit ratings',
-            'manage ratings',
+            'view ratings', 'submit ratings', 'manage ratings',
         ];
 
         foreach ($permissions as $permission) {
@@ -102,64 +84,86 @@ class RolesAndPermissionsSeeder extends Seeder
         $superAdmin = Role::firstOrCreate(['name' => 'super_admin', 'guard_name' => 'api']);
         $superAdmin->syncPermissions(Permission::all());
 
-        // 2. Admin — almost sab, lekin role/permission manage nahi kar sakta
+        // 2. Admin
         $admin = Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'api']);
         $admin->syncPermissions(Permission::whereNotIn('name', [
-            'manage roles',
-            'manage permissions',
+            'manage roles', 'manage permissions',
         ])->get());
 
-        // 3. Provider
+        // 3. Ops Admin — bookings, providers, customers manage kar sakta hai
+        $opsAdmin = Role::firstOrCreate(['name' => 'ops_admin', 'guard_name' => 'api']);
+        $opsAdmin->syncPermissions([
+            'view dashboard', 'access admin panel',
+            'bookings.view', 'bookings.manage',
+            'customers.view', 'customers.manage',
+            'providers.view', 'providers.approve', 'providers.manage',
+            'view reports',
+            'view users',
+            'view notifications', 'send notifications',
+        ]);
+
+        // 4. Finance Admin — finance aur payouts manage karta hai
+        $financeAdmin = Role::firstOrCreate(['name' => 'finance_admin', 'guard_name' => 'api']);
+        $financeAdmin->syncPermissions([
+            'view dashboard', 'access admin panel',
+            'finance.view', 'finance.manage',
+            'bookings.view',
+            'view reports', 'export reports',
+        ]);
+
+        // 5. Provider (Home Services)
         $provider = Role::firstOrCreate(['name' => 'provider', 'guard_name' => 'api']);
         $provider->syncPermissions([
-            'view workers',
-            'view shifts',
-            'create shifts',
-            'edit shifts',
-            'cancel shifts',
-            'bulk upload shifts',
-            'assign shifts',
-            'approve shifts',
-            'view timesheets',
-            'approve timesheets',
+            'view shifts', 'create shifts', 'edit shifts', 'cancel shifts',
+            'assign shifts', 'approve shifts', 'bulk upload shifts',
+            'view timesheets', 'approve timesheets',
             'view incidents',
-            'view referrals',
-            'view points',
-            'submit ratings',
-            'view ratings',
-            'send notifications',
-            'view notifications',
-            'view participants',
+            'view referrals', 'view points',
+            'submit ratings', 'view ratings',
+            'send notifications', 'view notifications',
+            'view participants', 'view workers',
         ]);
 
-        // 4. Worker
+        // 6. Customer (Home Services) — sirf apni bookings, payments
+        $customer = Role::firstOrCreate(['name' => 'customer', 'guard_name' => 'api']);
+        $customer->syncPermissions([
+            'view notifications',
+            'submit ratings',
+            'view ratings',
+        ]);
+
+        // 7. Worker (NDIS)
         $worker = Role::firstOrCreate(['name' => 'worker', 'guard_name' => 'api']);
         $worker->syncPermissions([
-            'view shifts',
-            'approve shifts',   // accept/reject shift
-            'cancel shifts',
-            'submit timesheets',
-            'view timesheets',
-            'create incidents',
-            'view incidents',
-            'view referrals',
-            'view points',
-            'view ratings',
-            'view notifications',
+            'view shifts', 'approve shifts', 'cancel shifts',
+            'submit timesheets', 'view timesheets',
+            'create incidents', 'view incidents',
+            'view referrals', 'view points',
+            'view ratings', 'view notifications',
         ]);
 
-        // 5. Participant
+        // 8. Participant (NDIS)
         $participant = Role::firstOrCreate(['name' => 'participant', 'guard_name' => 'api']);
         $participant->syncPermissions([
-            'view shifts',
-            'view workers',
-            'submit ratings',
-            'view ratings',
-            'view referrals',
-            'view points',
+            'view shifts', 'view workers',
+            'submit ratings', 'view ratings',
+            'view referrals', 'view points',
             'view notifications',
         ]);
 
-        $this->command->info('✅ Roles aur Permissions successfully seed ho gaye!');
+        $this->command->info('Roles aur Permissions seed ho gaye!');
+        $this->command->table(
+            ['Role', 'Permissions Count'],
+            [
+                ['super_admin',    Permission::count()],
+                ['admin',          $admin->permissions()->count()],
+                ['ops_admin',      $opsAdmin->permissions()->count()],
+                ['finance_admin',  $financeAdmin->permissions()->count()],
+                ['provider',       $provider->permissions()->count()],
+                ['customer',       $customer->permissions()->count()],
+                ['worker',         $worker->permissions()->count()],
+                ['participant',    $participant->permissions()->count()],
+            ]
+        );
     }
 }
